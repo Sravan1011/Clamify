@@ -1,5 +1,6 @@
 # Vercel Deployment Requirements
 # Optimized for serverless deployment
+# Last updated: 2025-12-15 12:26 IST - Force rebuild with Groq support
 
 # Web Framework
 fastapi>=0.122.0
