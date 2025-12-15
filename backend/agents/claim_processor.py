@@ -16,27 +16,54 @@ from typing import TypedDict, Literal
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0.1,
-)
+_primary_llm = None
+_fallback_llm = None
+
+_groq_api_key = os.getenv("GROQ_API_KEY")
+_google_api_key = os.getenv("GOOGLE_API_KEY")
+
+if _groq_api_key:
+    _primary_llm = ChatGroq(
+        model=os.getenv("GROQ_MODEL_NAME", "openai/gpt-oss-120b"),
+        api_key=_groq_api_key,
+        temperature=0.1,
+    )
+
+if _google_api_key:
+    _fallback_llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        google_api_key=_google_api_key,
+        temperature=0.1,
+    )
+
+
+def _invoke_llm(messages: list[HumanMessage | SystemMessage]):
+    try:
+        return _primary_llm.invoke(messages)
+    except Exception as e:
+        if _fallback_llm is None:
+            raise
+        try:
+            return _fallback_llm.invoke(messages)
+        except Exception:
+            raise e
 
 
 # ============ Claim Type Definitions ============
 
 class ClaimType:
     """Claim type constants with freshness rules."""
-    TIMELESS = 0        # Scientific facts, math - never expires
-    HISTORICAL = 1      # Past events with fixed dates - never expires
-    BREAKING_NEWS = 2   # Recent events, announcements - 7 days
-    ONGOING = 3         # Current prices, live situations - 24 hours
-    PREDICTION = 4      # Future events, forecasts - until target date
-    STATUS = 5          # Current state of person/company - 30 days
+    TIMELESS = 0        
+    HISTORICAL = 1      
+    BREAKING_NEWS = 2   
+    ONGOING = 3         
+    PREDICTION = 4      
+    STATUS = 5          
     
     NAMES = {
         0: "TIMELESS",
@@ -125,7 +152,7 @@ Rules:
 Example output: tesla, twitter, acquisition, 100b, 2025"""
 
     try:
-        response = llm.invoke([
+        response = _invoke_llm([
             SystemMessage(content="You extract keywords. Return only comma-separated words."),
             HumanMessage(content=prompt)
         ])
@@ -179,7 +206,7 @@ Categories:
 Return ONLY a single number (0-5), nothing else."""
 
     try:
-        response = llm.invoke([
+        response = _invoke_llm([
             SystemMessage(content="You classify claims. Return only a number 0-5."),
             HumanMessage(content=prompt)
         ])

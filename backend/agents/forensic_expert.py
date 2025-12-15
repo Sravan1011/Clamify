@@ -15,16 +15,43 @@ from typing import TypedDict
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0.1,
-)
+_primary_llm = None
+_fallback_llm = None
+
+_groq_api_key = os.getenv("GROQ_API_KEY")
+_google_api_key = os.getenv("GOOGLE_API_KEY")
+
+if _groq_api_key:
+    _primary_llm = ChatGroq(
+        model=os.getenv("GROQ_MODEL_NAME", "openai/gpt-oss-120b"),
+        api_key=_groq_api_key,
+        temperature=0.1,
+    )
+
+if _google_api_key:
+    _fallback_llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        google_api_key=_google_api_key,
+        temperature=0.1,
+    )
+
+
+def _invoke_llm(messages: list[HumanMessage | SystemMessage]):
+    try:
+        return _primary_llm.invoke(messages)
+    except Exception as e:
+        if _fallback_llm is None:
+            raise
+        try:
+            return _fallback_llm.invoke(messages)
+        except Exception:
+            raise e
 
 
 class ForensicState(TypedDict):
@@ -90,7 +117,7 @@ Respond in JSON:
     "reasoning": "Brief explanation"
 }}"""
 
-    response = llm.invoke([
+    response = _invoke_llm([
         SystemMessage(content="You are an expert forensic linguist. Always respond with valid JSON."),
         HumanMessage(content=prompt)
     ])
@@ -134,7 +161,7 @@ Respond in JSON:
     "reasoning": "Brief explanation"
 }}"""
 
-    response = llm.invoke([
+    response = _invoke_llm([
         SystemMessage(content="You are an expert in AI detection. Always respond with valid JSON."),
         HumanMessage(content=prompt)
     ])

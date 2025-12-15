@@ -46,14 +46,25 @@ cp .env.example .env
 Then edit `.env` with your actual API keys:
 
 ```env
-# AI & LLM APIs
-GOOGLE_API_KEY=your_actual_gemini_api_key
+# LLM Provider Configuration (Groq is primary)
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
+
+# Optional: OpenAI for GPT models
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Optional: Google Gemini as fallback
+GOOGLE_API_KEY=your_google_gemini_api_key_here
+
+# Web Search API
 TAVILY_API_KEY=your_actual_tavily_api_key
 ```
 
 **How to get these keys:**
 
-- **GOOGLE_API_KEY**: Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **GROQ_API_KEY**: Get from [Groq Console](https://console.groq.com/keys) (Primary - Fast Llama models)
+- **OPENAI_API_KEY**: Get from [OpenAI Platform](https://platform.openai.com/api-keys) (Optional - GPT models)
+- **GOOGLE_API_KEY**: Get from [Google AI Studio](https://aistudio.google.com/app/apikey) (Fallback - Gemini)
 - **TAVILY_API_KEY**: Sign up at [Tavily](https://tavily.com/)
 
 ⚠️ **Security Notes:**

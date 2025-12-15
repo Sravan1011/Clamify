@@ -17,6 +17,7 @@ from typing import TypedDict
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 
@@ -24,11 +25,37 @@ from agents.claim_processor import ClaimProcessor, ClaimType
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0.1,
-)
+_primary_llm = None
+_fallback_llm = None
+
+_groq_api_key = os.getenv("GROQ_API_KEY")
+_google_api_key = os.getenv("GOOGLE_API_KEY")
+
+if _groq_api_key:
+    _primary_llm = ChatGroq(
+        model=os.getenv("GROQ_MODEL_NAME", "llama-3.3-70b-versatile"),
+        api_key=_groq_api_key,
+        temperature=0.1,
+    )
+
+if _google_api_key:
+    _fallback_llm = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-exp",
+        google_api_key=_google_api_key,
+        temperature=0.1,
+    )
+
+
+def _invoke_llm(messages: list[HumanMessage | SystemMessage]):
+    try:
+        return _primary_llm.invoke(messages)
+    except Exception as e:
+        if _fallback_llm is None:
+            raise
+        try:
+            return _fallback_llm.invoke(messages)
+        except Exception:
+            raise e
 
 
 class JudgeState(TypedDict):
@@ -244,7 +271,7 @@ Be direct and actionable. Example:
 "This claim is 72% likely to be false based on contradicting news. Verify with official sources before sharing."
 """
 
-    response = llm.invoke([
+    response = _invoke_llm([
         SystemMessage(content="You are a neutral judge. Be concise and actionable."),
         HumanMessage(content=prompt)
     ])

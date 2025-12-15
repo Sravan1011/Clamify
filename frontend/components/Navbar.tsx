@@ -20,7 +20,7 @@ export default function Navbar({ onReset }: NavbarProps) {
                         <span className="text-primary">.AI</span>
                     </Link>
                 </div>
-                
+
                 <div className="h-4 w-[1px] bg-border" />
 
                 <div className="flex items-center gap-6 font-mono text-xs uppercase tracking-widest">

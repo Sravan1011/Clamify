@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Sparkles, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { Search, ArrowRight, Sparkles } from "lucide-react";
 
 interface SearchHeroProps {
   onSearch: (query: string) => void;
@@ -14,15 +14,16 @@ export default function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) onSearch(query);
+    if (query.trim()) {
+      onSearch(query);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-3xl mx-auto space-y-8 text-center relative py-20">
-
-      {/* Decorative Elements */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[100px] -z-10 animate-blob" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] -z-10 animate-blob animation-delay-2000" />
+    <div className="w-full max-w-3xl mx-auto text-center space-y-8 relative z-10">
+      {/* Decorative Blobs */}
+      <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-blob -z-10" />
+      <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-blob animation-delay-2000 -z-10" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -33,8 +34,8 @@ export default function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
         <h1 className="text-5xl md:text-7xl font-bold font-display tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/50">
           Verify Any Claim<br />Instantly
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
-          Harness the power of advanced AI to detect, analyze, and verify information from across the web in seconds.
+        <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
+          Paste a statement, tweet, or news headline. Our multi-agent AI will analyze sources and determine the truth.
         </p>
       </motion.div>
 
@@ -43,31 +44,28 @@ export default function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         onSubmit={handleSubmit}
-        className="w-full max-w-2xl relative group"
+        className="relative max-w-2xl mx-auto group"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <div className="relative flex items-center glass-panel p-2 rounded-2xl">
+        <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="relative flex items-center glass-panel rounded-2xl p-2 transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary/50">
           <Search className="w-6 h-6 text-muted-foreground ml-4" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Paste a rumor, news headline, or claim here..."
-            className="flex-1 bg-transparent border-none outline-none px-4 py-4 text-lg placeholder:text-muted-foreground/50 font-mono"
+            placeholder="e.g. 'The earth is flat' or 'Coffee reduces risk of heart disease'"
+            className="flex-1 bg-transparent border-none outline-none px-4 py-4 text-lg placeholder:text-muted-foreground/50"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !query.trim()}
-            className="glass-button px-8 py-3 flex items-center gap-2"
+            className="bg-primary text-primary-foreground p-4 rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
           >
             {isLoading ? (
-              <span className="animate-pulse">Verifying...</span>
+              <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <>
-                <span>Verify</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
+              <ArrowRight className="w-6 h-6" />
             )}
           </button>
         </div>
@@ -76,22 +74,13 @@ export default function SearchHero({ onSearch, isLoading }: SearchHeroProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="flex flex-wrap justify-center gap-3 text-sm text-muted-foreground font-mono"
+        transition={{ delay: 0.3 }}
+        className="flex flex-wrap justify-center gap-3 text-sm text-muted-foreground"
       >
-        <span className="opacity-50">Try:</span>
-        {["Deepfakes in elections", "New health supplements", "Viral celebrity rumors"].map((item, i) => (
-          <button
-            key={i}
-            onClick={() => {
-              setQuery(item);
-              onSearch(item);
-            }}
-            className="hover:text-primary transition-colors cursor-pointer border-b border-dashed border-muted-foreground/30 hover:border-primary"
-          >
-            "{item}"
-          </button>
-        ))}
+        <span>Try:</span>
+        <button onClick={() => setQuery("Humans only use 10% of their brains")} className="hover:text-primary transition-colors underline decoration-dotted">10% Brain Myth</button>
+        <button onClick={() => setQuery("Eating carrots improves night vision")} className="hover:text-primary transition-colors underline decoration-dotted">Carrots & Vision</button>
+        <button onClick={() => setQuery("Lightning never strikes the same place twice")} className="hover:text-primary transition-colors underline decoration-dotted">Lightning Strikes</button>
       </motion.div>
     </div>
   );
