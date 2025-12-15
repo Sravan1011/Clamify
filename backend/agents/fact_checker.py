@@ -20,43 +20,22 @@ from typing import TypedDict, Literal
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
+from tavily import TavilyClient
 
 load_dotenv()
 
-_primary_llm = None
-_fallback_llm = None
-
-_groq_api_key = os.getenv("GROQ_API_KEY")
+# Initialize Gemini LLM
 _google_api_key = os.getenv("GOOGLE_API_KEY")
+if not _google_api_key:
+    raise ValueError("GOOGLE_API_KEY environment variable is required")
 
-if _groq_api_key:
-    _primary_llm = ChatGroq(
-        model=os.getenv("GROQ_MODEL_NAME", "openai/gpt-oss-120b"),
-        api_key=_groq_api_key,
-        temperature=0.3,
-    )
-
-if _google_api_key:
-    _fallback_llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=_google_api_key,
-        temperature=0.3,
-    )
-
-
-def _invoke_llm(messages: list[HumanMessage | SystemMessage]):
-    try:
-        return _primary_llm.invoke(messages)
-    except Exception as e:
-        if _fallback_llm is None:
-            raise
-        try:
-            return _fallback_llm.invoke(messages)
-        except Exception:
-            raise e
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.0-flash-exp",
+    google_api_key=_google_api_key,
+    temperature=0.1,
+)
 
 # In-memory cache for search results
 _search_cache: dict[str, dict] = {}
@@ -113,7 +92,7 @@ Previous search results summary:
 The evidence was vague or insufficient. Generate 3 NEW, more specific search queries.
 Return ONLY the 3 queries, one per line, no numbering or bullets."""
 
-    response = _invoke_llm([
+    response = llm.invoke([
         SystemMessage(content="You are an expert fact-checking strategist."),
         HumanMessage(content=prompt)
     ])
@@ -230,7 +209,7 @@ Provide 3 simulated search results with:
 
 Format each result clearly."""
 
-        response = _invoke_llm([
+        response = llm.invoke([
             SystemMessage(content="You are simulating realistic web search results."),
             HumanMessage(content=prompt)
         ])
@@ -282,7 +261,7 @@ EVIDENCE_QUALITY: [SUFFICIENT/INSUFFICIENT]
 ANALYSIS: [Your analysis]
 VERDICT: [VERIFIED/DEBUNKED/UNVERIFIED]"""
 
-    response = _invoke_llm([
+    response = llm.invoke([
         SystemMessage(content="You are an expert fact-checking analyst."),
         HumanMessage(content=prompt)
     ])
