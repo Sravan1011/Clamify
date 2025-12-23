@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchHero from "../components/SearchHero";
 import VerificationResult from "../components/VerificationResult";
 import VerificationProgress, { Log } from "../components/VerificationProgress";
+import ApiKeyModal from "../components/ApiKeyModal";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 
@@ -14,7 +15,53 @@ export default function Home() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [sources, setSources] = useState<any[]>([]);
 
+  // API Key Management
+  const [geminiApiKey, setGeminiApiKey] = useState<string>("");
+  const [tavilyApiKey, setTavilyApiKey] = useState<string>("");
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+
+  // Load API keys from localStorage on mount
+  useEffect(() => {
+    const savedGeminiKey = localStorage.getItem("gemini_api_key");
+    const savedTavilyKey = localStorage.getItem("tavily_api_key");
+
+    if (savedGeminiKey) {
+      setGeminiApiKey(savedGeminiKey);
+    } else {
+      // Show modal if no Gemini key is saved
+      setShowApiKeyModal(true);
+    }
+
+    if (savedTavilyKey) {
+      setTavilyApiKey(savedTavilyKey);
+    }
+  }, []);
+
+  const handleSaveApiKeys = (gemini: string, tavily?: string) => {
+    setGeminiApiKey(gemini);
+    localStorage.setItem("gemini_api_key", gemini);
+
+    if (tavily) {
+      setTavilyApiKey(tavily);
+      localStorage.setItem("tavily_api_key", tavily);
+    } else {
+      setTavilyApiKey("");
+      localStorage.removeItem("tavily_api_key");
+    }
+  };
+
+  const handleOpenSettings = () => {
+    setShowApiKeyModal(true);
+  };
+
   const handleSearch = async (query: string) => {
+    // Check if Gemini API key is set
+    if (!geminiApiKey) {
+      setError("Please configure your Gemini API key in settings");
+      setShowApiKeyModal(true);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -26,7 +73,11 @@ export default function Home() {
       const res = await fetch(`${apiBaseUrl}/verify_stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claim: query }),
+        body: JSON.stringify({
+          claim: query,
+          gemini_api_key: geminiApiKey,
+          tavily_api_key: tavilyApiKey || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -93,8 +144,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen text-foreground selection:bg-primary/30 overflow-x-hidden font-mono">
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={showApiKeyModal}
+        onClose={() => setShowApiKeyModal(false)}
+        onSave={handleSaveApiKeys}
+        initialGeminiKey={geminiApiKey}
+        initialTavilyKey={tavilyApiKey}
+      />
+
       <div className="relative z-10 flex flex-col min-h-screen max-w-7xl mx-auto">
-        <Navbar onReset={handleReset} />
+        <Navbar onReset={handleReset} onOpenSettings={handleOpenSettings} />
 
         <div className="flex-1 flex flex-col pt-24">
           <AnimatePresence mode="wait">

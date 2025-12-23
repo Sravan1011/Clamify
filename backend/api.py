@@ -27,6 +27,8 @@ app.add_middleware(
 
 class ClaimRequest(BaseModel):
     claim: str
+    gemini_api_key: str | None = None
+    tavily_api_key: str | None = None
 
 from fastapi.staticfiles import StaticFiles
 from agents.shelby import Shelby
@@ -69,11 +71,31 @@ async def verify_claim_stream(request: ClaimRequest):
     claim = request.claim.strip()
     if not claim:
         raise HTTPException(status_code=400, detail="Claim cannot be empty")
+    
+    # Get API keys from request or fall back to environment
+    gemini_key = request.gemini_api_key or os.getenv("GOOGLE_API_KEY")
+    tavily_key = request.tavily_api_key or os.getenv("TAVILY_API_KEY")
+    
+    # Validate that at least Gemini key is available
+    if not gemini_key:
+        raise HTTPException(
+            status_code=400, 
+            detail="Gemini API key is required. Please provide it in the request or set GOOGLE_API_KEY environment variable."
+        )
 
     # Track processing time
     start_time = time.time()
 
     async def event_generator():
+        # Import agent factory
+        from agents.agent_factory import create_agents_with_keys
+        
+        # Create agents with provided API keys
+        fact_checker_instance, forensic_expert_instance, judge_instance = create_agents_with_keys(
+            gemini_key=gemini_key,
+            tavily_key=tavily_key
+        )
+        
         yield f"data: {json.dumps({'type': 'status', 'message': 'Initializing agents...'})}\n\n"
         
         a1_result = {}
@@ -82,7 +104,7 @@ async def verify_claim_stream(request: ClaimRequest):
         
         async def run_fact_checker():
             try:
-                async for event in fact_checker.astream_verify(claim):
+                async for event in fact_checker_instance.astream_verify(claim):
                     for node, state in event.items():
                         if node == "strategist":
                              await queue.put({"type": "log", "agent": "FactChecker", "message": "Strategist generated search queries."})
@@ -100,7 +122,7 @@ async def verify_claim_stream(request: ClaimRequest):
 
         async def run_forensic_expert():
             try:
-                async for event in forensic_expert.astream_analyze(claim):
+                async for event in forensic_expert_instance.astream_analyze(claim):
                     for node, state in event.items():
                         if node == "profiler":
                             await queue.put({"type": "log", "agent": "ForensicExpert", "message": "Profiler analyzed linguistic patterns."})
@@ -135,7 +157,7 @@ async def verify_claim_stream(request: ClaimRequest):
 
         try:
             # Get base AEP from judge
-            aep = await judge.aadjudicate(a1_result, a2_result)
+            aep = await judge_instance.aadjudicate(a1_result, a2_result)
             
             # ===================================================================
             # CRITICAL: Build COMPLETE AEP with all agent data for comprehensive PDF
@@ -221,21 +243,57 @@ async def verify_claim(request: ClaimRequest):
     if not claim:
         raise HTTPException(status_code=400, detail="Claim cannot be empty")
     
+    # Get API keys from request or fall back to environment
+    gemini_key = request.gemini_api_key or os.getenv("GOOGLE_API_KEY")
+    tavily_key = request.tavily_api_key or os.getenv("TAVILY_API_KEY")
+    
+    # Validate that at least Gemini key is available
+    if not gemini_key:
+        raise HTTPException(
+            status_code=400, 
+            detail="Gemini API key is required. Please provide it in the request or set GOOGLE_API_KEY environment variable."
+        )
+
     start_time = time.time()
     
     try:
-        # Run agents in parallel
+        # Import agent factory
+        from agents.agent_factory import create_agents_with_keys
+        
+        # Create agents with provided API keys
+        fact_checker_instance, forensic_expert_instance, judge_instance = create_agents_with_keys(
+            gemini_key=gemini_key,
+            tavily_key=tavily_key
+        )
+
+        # Run agents in parallel using their async graphs
         logger.info("Running agents in parallel...")
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            future_a1 = executor.submit(fact_checker.verify_claim, claim)
-            future_a2 = executor.submit(forensic_expert.analyze_text, claim)
-            
-            a1_result = future_a1.result()
-            a2_result = future_a2.result()
+        
+        # Prepare initial states
+        fact_state = {"claim": claim, "search_queries": [], "search_results": [], "evidence_dossier": {}}
+        forensic_state = {"raw_input": claim, "linguistic_analysis": {}, "ai_detection": {}, "integrity_score": 0.0, "penalties_applied": []}
+        
+        # Execute graphs asynchronously
+        results = await asyncio.gather(
+            fact_checker_instance.graph.ainvoke(fact_state),
+            forensic_expert_instance.graph.ainvoke(forensic_state)
+        )
+        
+        final_fact_state, final_forensic_state = results
+        
+        # Extract results
+        a1_result = final_fact_state.get("evidence_dossier", {})
+        a2_result = {
+            "integrity_score": final_forensic_state.get("integrity_score", 0.0),
+            "verdict": "UNKNOWN", # Forensic expert doesn't output explicit verdict field in state, need to check
+            "penalties_applied": final_forensic_state.get("penalties_applied", []),
+            "linguistic_summary": final_forensic_state.get("linguistic_analysis", {}),
+            "detection_summary": final_forensic_state.get("ai_detection", {})
+        }
         
         # Get verdict from judge
         logger.info("Adjudicating verdict...")
-        aep = judge.adjudicate(a1_result, a2_result)
+        aep = await judge_instance.aadjudicate(a1_result, a2_result)
         
         # Build complete AEP with all data
         processing_time = time.time() - start_time

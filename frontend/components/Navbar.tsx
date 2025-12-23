@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { ModeToggle } from "@/components/mode-toggle";
+import { Settings } from "lucide-react";
 
 interface NavbarProps {
     onReset?: () => void;
+    onOpenSettings?: () => void;
 }
 
-export default function Navbar({ onReset }: NavbarProps) {
+export default function Navbar({ onReset, onOpenSettings }: NavbarProps) {
     return (
         <nav className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4">
             <div className="glass-panel px-6 py-3 flex items-center gap-8 rounded-full">
@@ -25,6 +27,15 @@ export default function Navbar({ onReset }: NavbarProps) {
 
                 <div className="flex items-center gap-6 font-mono text-xs uppercase tracking-widest">
                     <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link>
+                    {onOpenSettings && (
+                        <button
+                            onClick={onOpenSettings}
+                            className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                            title="API Settings"
+                        >
+                            <Settings className="w-4 h-4" />
+                        </button>
+                    )}
                     <ModeToggle />
                 </div>
             </div>
