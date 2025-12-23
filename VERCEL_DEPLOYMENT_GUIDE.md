@@ -8,9 +8,10 @@ Complete guide to deploy both frontend and backend to Vercel.
 
 1. ✅ **Vercel Account** - Sign up at https://vercel.com
 2. ✅ **GitHub Account** - Your code should be in a GitHub repository
-3. ✅ **API Keys Ready**:
+3. ✅ **(Optional) API Keys**:
    - Google Gemini API Key
    - Tavily API Key
+   *Note: Users can now provide their own keys in the frontend app!*
 
 ---
 
@@ -65,12 +66,12 @@ git push -u origin main
    - **Build Command**: Leave empty
    - **Output Directory**: Leave empty
 
-5. **Add Environment Variables**:
-   Click "Environment Variables" and add:
+5. **Configue Environment Variables (Optional)**:
+   Click "Environment Variables". You can add these as **default fallback keys** if you want the app to work without user input. **If omitted, users MUST enter their own keys in the frontend.**
    
    ```
-   GOOGLE_API_KEY = your_google_api_key_here
-   TAVILY_API_KEY = your_tavily_api_key_here
+   GOOGLE_API_KEY = your_google_api_key_here (Optional)
+   TAVILY_API_KEY = your_tavily_api_key_here (Optional)
    BACKEND_URL = https://claime-ai-backend.vercel.app
    ```
 
@@ -158,17 +159,21 @@ git push
 # Health check
 curl https://claime-ai-backend.vercel.app/
 
-# Test verification endpoint
+# Test verification endpoint (using your key if env vars not set)
 curl -X POST "https://claime-ai-backend.vercel.app/verify" \
   -H "Content-Type: application/json" \
-  -d '{"claim": "Tesla is acquiring Twitter"}'
+  -d '{
+    "claim": "Tesla is acquiring Twitter",
+    "gemini_api_key": "YOUR_KEY_HERE"
+  }'
 ```
 
 ### Test Frontend
 1. Visit: `https://claime-ai.vercel.app`
-2. Enter a claim: "Apple reported Q4 earnings"
-3. Click "Verify Claim"
-4. Should see results! ✅
+2. **First Visit**: You will be prompted to enter your API Keys.
+3. Enter a claim: "Apple reported Q4 earnings"
+4. Click "Verify Claim"
+5. Should see results! ✅
 
 ---
 
@@ -205,11 +210,10 @@ frontend/
 #### Error: "Function timeout"
 **Solution**: Vercel free tier has 10s timeout. Optimize your code or upgrade plan.
 
-#### Error: "Environment variable not found"
+#### Error: "Gemini API key is required"
 **Solution**: 
-1. Go to Vercel Dashboard → Your Backend Project → Settings → Environment Variables
-2. Add missing variables
-3. Redeploy
+1. Ensure you provided the key in the Frontend Settings modal.
+2. OR Configure `GOOGLE_API_KEY` in Vercel Backend Environment Variables as a fallback.
 
 ### Frontend Issues
 
@@ -308,10 +312,10 @@ Vercel will auto-deploy!
 - ✅ Use Vercel's environment variables
 - ✅ Rotate API keys regularly
 
-### API Keys:
-- ✅ Keep them secret
-- ✅ Use different keys for dev/prod
-- ✅ Monitor usage
+### API Keys (BYOK):
+- ✅ Frontend stores keys in user's LocalStorage (Client-side only)
+- ✅ Keys are sent securely via HTTPS
+- ✅ Backend does not persist user keys
 
 ### CORS:
 - ✅ Configure allowed origins in backend
@@ -323,13 +327,12 @@ Vercel will auto-deploy!
 
 ### Before Deployment:
 - [ ] Code pushed to GitHub
-- [ ] API keys ready
 - [ ] `.env.production` configured
 - [ ] All dependencies in `requirements-vercel.txt`
 
 ### Backend Deployment:
 - [ ] Backend deployed to Vercel
-- [ ] Environment variables added
+- [ ] (Optional) Fallback Environment variables added
 - [ ] Health check working (`/` endpoint)
 - [ ] API docs accessible (`/docs`)
 - [ ] Backend URL copied
@@ -342,7 +345,7 @@ Vercel will auto-deploy!
 - [ ] PDF download works
 
 ### Post-Deployment:
-- [ ] Test full verification flow
+- [ ] Test full verification flow with BYOK keys
 - [ ] Check logs for errors
 - [ ] Monitor performance
 - [ ] Share with users! 🎉

@@ -37,6 +37,7 @@ Claime AI is a **security checkpoint** for information:
 - ⚖️ The Judge: Trust-weighted consensus
 - ⚡ Parallel execution
 - 📄 PDF reports
+- 🔐 **BYOK (Bring Your Own Key)**: Secure client-side API key management
 - ☁️ Shelby decentralized storage
 
 ---
@@ -59,7 +60,7 @@ moveh/
 | Component         | Technology         | Purpose                        |
 |-------------------|-------------------|--------------------------------|
 | AI Orchestration  | LangGraph         | Multi-agent state machines     |
-| LLM               | Gemini 2.5 Flash  | Fast, cost-effective inference |
+| LLM               | Gemini 2.0 Flash  | Fast, cost-effective inference |
 | Web Search        | Tavily API        | Real-time fact verification    |
 | PDF Generation    | ReportLab         | Professional reports           |
 | Decentralized Storage | Shelby Protocol | Evidence preservation         |
@@ -83,67 +84,55 @@ moveh/
    cd moveh
    ```
 
-2. **Set up environment variables:**
+2. **Backend Setup:**
    ```bash
-   # Copy the example env file
-   cp .env.example .env
+   cd backend
    
-   # Edit .env with your actual API keys
-   nano .env  # or use your preferred editor
+   # Create virtual environment
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   
+   # Run the server
+   uvicorn api:app --reload
    ```
 
-### Backend Setup
+3. **Frontend Setup:**
+   ```bash
+   cd frontend
+   
+   # Install dependencies
+   pnpm install
+   
+   # Create environment file
+   echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000" > .env.local
+   
+   # Run development server
+   pnpm dev
+   ```
 
-```bash
-cd backend
+### 🔐 API Configuration (BYOK)
 
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+Claime AI uses a **Bring Your Own Key** architecture. You do **not** need to configure API keys in the backend for general use.
 
-# Install dependencies
-pip install -r requirements.txt
+1. Open the application in your browser (http://localhost:3000).
+2. You will be prompted to enter your **Google Gemini API Key**.
+3. (Optional) Enter your **Tavily API Key** for web search capabilities.
+4. Keys are stored securely in your browser's local storage and sent with each request.
 
-# Copy and configure environment variables
-cp .env.example .env
-# Edit .env with your API keys
+### Environment Variables (Optional Fallback)
 
-# Run the server
-uvicorn api:app --reload
-```
+If you are hosting a private instance or developing, you can still set default API keys in the backend `.env` file. These will be used if the user **does not** provide keys in the frontend.
 
-### Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-pnpm install
-
-# Create environment file
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
-
-# Run development server
-pnpm dev
-```
-
-### Environment Variables
-
-Create a `.env` file based on `.env.example`:
+Create `backend/.env`:
 
 ```env
-# Required
+# Optional: Fallback keys if not provided by frontend
 GOOGLE_API_KEY=your_gemini_api_key
 TAVILY_API_KEY=your_tavily_api_key
 ```
-
-**🔐 Security Best Practices:**
-- ✅ `.env` files are gitignored - never commit them
-- ✅ Use `.env.example` as a template (no real secrets)
-- ✅ For production/CI: use GitHub Secrets, AWS Secrets Manager, etc.
-- ✅ Rotate keys regularly
-- ❌ Never hardcode secrets in source code
-- ❌ Never commit `.aptos/config.yaml` (contains private keys)
 
 **Where to get API keys:**
 - **GOOGLE_API_KEY**: [Google AI Studio](https://aistudio.google.com/app/apikey)
@@ -153,9 +142,9 @@ TAVILY_API_KEY=your_tavily_api_key
 
 ## 🚀 Usage
 
-- **Interactive:** `python main.py`
-- **API:** Visit [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Frontend:** Visit [http://localhost:3000](http://localhost:3000)
+  - Click the **Settings (⚙️)** icon in the navbar to manage your API keys.
+- **API:** Visit [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
