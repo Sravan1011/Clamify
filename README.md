@@ -167,6 +167,6 @@ MIT License
 
 **🛡️ Claime AI - "Trust, but Verify"**
 
-Built with ❤️ by Kedar Sathe & Riddhi Shende
+
 
 </div>
