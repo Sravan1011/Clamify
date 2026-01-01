@@ -80,8 +80,8 @@ moveh/
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/mohitpaddhariya/moveh.git
-   cd moveh
+   git clone https://github.com/Sravan1011/Clamify
+   
    ```
 
 2. **Backend Setup:**
